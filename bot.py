@@ -2,7 +2,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, filters, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.daily import DailyTrigger
+from apscheduler.triggers.cron import CronTrigger  # Используем CronTrigger
 from datetime import datetime, timedelta
 import pytz
 import config
@@ -43,7 +43,7 @@ def send_daily_tasks(update, context):
         if task['Статус'] not in ['выполнено', 'отменено']:
             message += f"\n{task['Название задачи']}: {task['Описание']} (Статус: {task['Статус']})"
             keyboard.append([
-                InlineKeyboardButton(task['Название задачи'], callback_data=f"task_{task['Название задачи']}")
+                InlineKeyboardButton(task['Название задачи'], callback_data=f"task_{task['Название задачи']}")  # Кнопки для задач
             ])
     
     if keyboard:
@@ -120,7 +120,7 @@ def main():
     
     # Планировщик задач
     scheduler = BackgroundScheduler()
-    scheduler.add_job(schedule_daily_notification, DailyTrigger(hour=9, minute=0, second=0), args=[updater.bot], id="daily_task_check")
+    scheduler.add_job(schedule_daily_notification, CronTrigger(hour=9, minute=0, second=0), args=[updater.bot], id="daily_task_check")
     scheduler.start()
 
     # Запуск бота
