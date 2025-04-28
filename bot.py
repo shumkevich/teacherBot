@@ -1,6 +1,4 @@
 import os
-
-# быстро и надёжно увидим в логах
 print("=== ENV KEYS ===")
 print(list(os.environ.keys()))
 print("=== GOOGLE_CREDENTIALS ===")
