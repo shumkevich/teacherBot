@@ -1,3 +1,12 @@
+import os
+
+# быстро и надёжно увидим в логах
+print("=== ENV KEYS ===")
+print(list(os.environ.keys()))
+print("=== GOOGLE_CREDENTIALS ===")
+print(os.environ.get("GOOGLE_CREDENTIALS"))
+print("=== END ENV DUMP ===")
+
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext
@@ -35,17 +44,26 @@ async def sync(update, context):
 
 # Отправка списка задач
 async def send_daily_tasks(update, context):
-    tasks = sheets_service.get_tasks()
+    try:
+        tasks = sheets_service.get_tasks()
+    except Exception as e:
+        # логируем причину
+        logger.error(f"Не удалось получить задачи: {e}")
+        # отвечаем пользователю
+        await update.message.reply_text(
+            "Ошибка: не настроена переменная GOOGLE_CREDENTIALS или нет доступа к таблице."
+        )
+        return
+
     message = "Текущие задачи:\n"
-    
     keyboard = []
     for task in tasks:
         if task['Статус'] not in ['выполнено', 'отменено']:
             message += f"\n{task['Название задачи']}: {task['Описание']} (Статус: {task['Статус']})"
             keyboard.append([
-                InlineKeyboardButton(task['Название задачи'], callback_data=f"task_{task['Название задачи']}")  # Кнопки для задач
+                InlineKeyboardButton(task['Название задачи'], callback_data=f"task_{task['Название задачи']}")
             ])
-    
+
     if keyboard:
         keyboard.append([InlineKeyboardButton("Обновить задачи", callback_data="sync")])
         reply_markup = InlineKeyboardMarkup(keyboard)
