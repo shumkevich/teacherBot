@@ -1,12 +1,18 @@
+import json
+import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Авторизация Google Sheets API
+# Название листа в таблице
+SHEET_NAME = "Лист1"  # или твое реальное название листа в гугл-таблице
+
 def authenticate_google_sheets():
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
+    scope = ['https://spreadsheets.google.com/feeds',
+             'https://www.googleapis.com/auth/drive']
+    credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
     client = gspread.authorize(creds)
-    return client.open_by_key(GOOGLE_SHEET_ID)
+    return client
 
 # Получить все задачи из таблицы
 def get_tasks():
