@@ -101,14 +101,14 @@ async def task_action_handler(update, context):
         await send_daily_tasks(update, context)
 
 # Запуск ежедневного напоминания
-async def schedule_daily_notification(context):
+def schedule_daily_notification(context):
     job = context.job
-    await send_daily_tasks(job.context, context)
+    send_daily_tasks(job.context, context)
 
 # Главная функция
-async def main():
+def main():
     application = Application.builder().token(config.TELEGRAM_TOKEN).build()
-    
+
     # Команды
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("sync", sync))
@@ -123,8 +123,7 @@ async def main():
     scheduler.start()
 
     # Запуск бота
-    await application.run_polling()
+    application.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
