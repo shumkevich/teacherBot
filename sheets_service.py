@@ -1,35 +1,37 @@
-import json
-import os
+import os, json, base64
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Название листа в таблице
-SHEET_NAME = "Лист1"  # или твое реальное название листа в гугл-таблице
+# Имя листа в вашей таблице
+SHEET_NAME = "Лист1"
 
 def authenticate_google_sheets():
+    # читаем одну Base64-строку
+    b64 = os.getenv("GOOGLE_CREDENTIALS_B64")
+    if not b64:
+        raise ValueError("GOOGLE_CREDENTIALS_B64 не установлена")
+
+    # декодируем Base64 → получаем JSON bytes → превращаем в Python-строку и в dict
+    data = base64.b64decode(b64)
+    creds_dict = json.loads(data)
+
     scope = ['https://spreadsheets.google.com/feeds',
              'https://www.googleapis.com/auth/drive']
-    credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
-    client = gspread.authorize(creds)
-    return client
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    return gspread.authorize(creds)
 
-# Получить все задачи из таблицы
 def get_tasks():
     sheet = authenticate_google_sheets().worksheet(SHEET_NAME)
-    tasks = sheet.get_all_records()
-    return tasks
+    return sheet.get_all_records()
 
-# Обновить статус задачи
 def update_task_status(task_name, new_status):
     sheet = authenticate_google_sheets().worksheet(SHEET_NAME)
     cell = sheet.find(task_name)
     if cell:
-        sheet.update_cell(cell.row, 3, new_status)  # Статус в 3-й колонке
+        sheet.update_cell(cell.row, 3, new_status)
 
-# Обновить дату выполнения задачи
 def update_task_date(task_name, new_date):
     sheet = authenticate_google_sheets().worksheet(SHEET_NAME)
     cell = sheet.find(task_name)
     if cell:
-        sheet.update_cell(cell.row, 2, new_date)  # Дата выполнения во 2-й колонке
+        sheet.update_cell(cell.row, 2, new_date)
