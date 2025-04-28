@@ -18,6 +18,7 @@ CHECK_TIME = "09:00"
 
 # Admin Users (user_id from Telegram)
 admin_user_id = os.getenv("ADMIN_USER_ID")
+print(f"ADMIN_USER_ID: {admin_user_id}")  # Добавьте эту строку для отладки
 if admin_user_id is None:
     raise ValueError("Переменная окружения 'ADMIN_USER_ID' не установлена.")
 ALLOWED_USERS = [int(admin_user_id)]
