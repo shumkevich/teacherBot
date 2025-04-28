@@ -121,12 +121,9 @@ def main():
     scheduler = BackgroundScheduler()
     scheduler.add_job(schedule_daily_notification, CronTrigger(hour=9, minute=0, second=0), args=[application], id="daily_task_check")
     scheduler.start()
-
- # Сброс вебхука и всех зависших getUpdates
-    application.bot.delete_webhook(drop_pending_updates=True)
     
     # Запуск бота
-    application.run_polling()
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
