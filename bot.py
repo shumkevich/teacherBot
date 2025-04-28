@@ -1,8 +1,8 @@
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, filters, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.cron import CronTrigger  # Используем CronTrigger
 from datetime import datetime, timedelta
 import pytz
 import config
@@ -17,24 +17,24 @@ def is_authorized(user_id):
     return user_id in config.ALLOWED_USERS
 
 # Обработчик команды /start
-async def start(update, context):
+def start(update, context):
     user_id = update.message.from_user.id
     if is_authorized(user_id):
-        await update.message.reply_text("Добро пожаловать! Ты авторизован.")
-        await send_daily_tasks(update, context)  # Отправить задачи сразу после старта
+        update.message.reply_text("Добро пожаловать! Ты авторизован.")
+        send_daily_tasks(update, context)  # Отправить задачи сразу после старта
     else:
-        await update.message.reply_text("Неизвестный пользователь. Доступ запрещён.")
+        update.message.reply_text("Неизвестный пользователь. Доступ запрещён.")
 
 # Обработчик команды /sync
-async def sync(update, context):
+def sync(update, context):
     user_id = update.message.from_user.id
     if is_authorized(user_id):
-        await send_daily_tasks(update, context)
+        send_daily_tasks(update, context)
     else:
-        await update.message.reply_text("Неавторизованный доступ.")
+        update.message.reply_text("Неавторизованный доступ.")
 
 # Отправка списка задач
-async def send_daily_tasks(update, context):
+def send_daily_tasks(update, context):
     tasks = sheets_service.get_tasks()
     message = "Текущие задачи:\n"
     
@@ -49,12 +49,12 @@ async def send_daily_tasks(update, context):
     if keyboard:
         keyboard.append([InlineKeyboardButton("Обновить задачи", callback_data="sync")])
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(message, reply_markup=reply_markup)
+        update.message.reply_text(message, reply_markup=reply_markup)
     else:
-        await update.message.reply_text("Нет задач для выполнения.")
+        update.message.reply_text("Нет задач для выполнения.")
 
 # Обработчик выбора задачи
-async def task_handler(update, context):
+def task_handler(update, context):
     query = update.callback_query
     task_name = query.data.split("_")[1]
     task_details = next(task for task in sheets_service.get_tasks() if task['Название задачи'] == task_name)
@@ -67,14 +67,14 @@ async def task_handler(update, context):
         [InlineKeyboardButton("Назад", callback_data="back")]
     ]
     
-    await query.answer()
-    await query.edit_message_text(
+    update.callback_query.answer()
+    update.callback_query.edit_message_text(
         f"{task_name}\n\nОписание: {task_details['Описание']}\nСтатус: {task_details['Статус']}",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 # Обработчик действий по задачам
-async def task_action_handler(update, context):
+def task_action_handler(update, context):
     query = update.callback_query
     action_data = query.data.split("_")
     
@@ -83,22 +83,22 @@ async def task_action_handler(update, context):
     
     if action == "completed":
         sheets_service.update_task_status(task_name, "выполнено")
-        await query.edit_message_text(f"Задача '{task_name}' выполнена.")
+        query.edit_message_text(f"Задача '{task_name}' выполнена.")
     elif action == "delay_1d":
         new_date = (datetime.now(pytz.timezone('Europe/Moscow')) + timedelta(days=1)).date()
         sheets_service.update_task_date(task_name, new_date)
         sheets_service.update_task_status(task_name, f"отложено до {new_date}")
-        await query.edit_message_text(f"Задача '{task_name}' отложена на сутки.")
+        query.edit_message_text(f"Задача '{task_name}' отложена на сутки.")
     elif action == "delay_7d":
         new_date = (datetime.now(pytz.timezone('Europe/Moscow')) + timedelta(weeks=1)).date()
         sheets_service.update_task_date(task_name, new_date)
         sheets_service.update_task_status(task_name, f"отложено до {new_date}")
-        await query.edit_message_text(f"Задача '{task_name}' отложена на неделю.")
+        query.edit_message_text(f"Задача '{task_name}' отложена на неделю.")
     elif action == "cancel":
         sheets_service.update_task_status(task_name, "отменено")
-        await query.edit_message_text(f"Задача '{task_name}' отменена.")
+        query.edit_message_text(f"Задача '{task_name}' отменена.")
     elif action == "back":
-        await send_daily_tasks(update, context)
+        send_daily_tasks(update, context)
 
 # Запуск ежедневного напоминания
 def schedule_daily_notification(context):
@@ -107,23 +107,25 @@ def schedule_daily_notification(context):
 
 # Главная функция
 def main():
-    application = Application.builder().token(config.TELEGRAM_TOKEN).build()
-
+    updater = Updater(config.TELEGRAM_TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+    
     # Команды
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("sync", sync))
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("sync", sync))
 
     # Обработчики кнопок
-    application.add_handler(CallbackQueryHandler(task_handler, pattern="task_"))
-    application.add_handler(CallbackQueryHandler(task_action_handler, pattern="completed|delay_1d|delay_7d|cancel|back"))
+    dispatcher.add_handler(CallbackQueryHandler(task_handler, pattern="task_"))
+    dispatcher.add_handler(CallbackQueryHandler(task_action_handler, pattern="completed|delay_1d|delay_7d|cancel|back"))
     
     # Планировщик задач
     scheduler = BackgroundScheduler()
-    scheduler.add_job(schedule_daily_notification, CronTrigger(hour=9, minute=0, second=0), args=[application.bot], id="daily_task_check")
+    scheduler.add_job(schedule_daily_notification, CronTrigger(hour=9, minute=0, second=0), args=[updater.bot], id="daily_task_check")
     scheduler.start()
 
     # Запуск бота
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     main()
