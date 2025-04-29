@@ -1,6 +1,0 @@
-python-telegram-bot
-gspread
-oauth2client
-apscheduler
-python-dotenv
-pytz
