@@ -2,6 +2,8 @@ import os
 import requests
 from oauth2client.service_account import ServiceAccountCredentials
 from dotenv import load_dotenv
+import gspread
+from googleapiclient.discovery import build
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
@@ -30,7 +32,6 @@ SCOPE = [
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE_PATH, SCOPE)
 
 # Авторизация
-import gspread
 gc = gspread.authorize(credentials)
 sheet = gc.open_by_key("1NcoQVZwdK5u-GJk96H3rTgMElEtKJm2MUOlXhUOchKA").sheet1
 
