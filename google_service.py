@@ -3,6 +3,15 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timedelta
 import os
 
+# Получаем путь к файлу
+CREDS_FILE = os.getenv("GOOGLE_CREDS_FILE")
+
+# Проверим значение переменной
+if not CREDS_FILE:
+    raise ValueError("Переменная окружения GOOGLE_CREDS_FILE не установлена или пуста. Проверьте файл .env.")
+else:
+    print(f"Используем файл с ключами: {CREDS_FILE}")
+
 # Подключение к Google Sheets
 SCOPE = [
     "https://spreadsheets.google.com/feeds", 
