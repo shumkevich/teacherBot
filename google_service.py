@@ -33,25 +33,25 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE_PATH, 
 
 # Авторизация
 gc = gspread.authorize(credentials)
-sheet = gc.open_by_key("1NcoQVZwdK5u-GJk96H3rTgMElEtKJm2MUOlXhUOchKA").sheet1
+sheet = gc.open_by_key(os.getenv("SPREADSHEET_ID")).sheet1  # Получаем ID из переменных окружения
 
 
 def get_active_tasks():
     data = sheet.get_all_records()
     active = []
     for idx, row in enumerate(data):
-        if row['статус'].lower() not in ['выполнено', 'отменено']:
-            row['id'] = idx + 2  # +2: первая строка — заголовок, индексация с 1
+        if row['статус'].lower() not in ['выполнено', 'отменено']:  # Фильтруем задачи по статусу
+            row['id'] = idx + 2  # Индекс строки (учитываем, что индексация с 2)
             active.append(row)
     return active
 
 
 def update_task_status(row_index, new_status):
-    sheet.update_cell(row_index, 3, new_status)  # Статус — 3-й столбец
+    sheet.update_cell(row_index, 3, new_status)  # Обновляем статус задачи (столбец C)
 
 
 def update_task_date(row_index, days):
     from datetime import datetime, timedelta
     new_date = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
-    sheet.update_cell(row_index, 2, new_date)  # Дата — 2-й столбец
-    sheet.update_cell(row_index, 3, "отложено")
+    sheet.update_cell(row_index, 2, new_date)  # Обновляем дату (столбец B)
+    sheet.update_cell(row_index, 3, "отложено")  # Обновляем статус на "отложено"
