@@ -1,9 +1,8 @@
-import os
+import os 
 import requests
 from oauth2client.service_account import ServiceAccountCredentials
 from dotenv import load_dotenv
 import gspread
-from googleapiclient.discovery import build
 
 # Загружаем переменные окружения из .env файла
 load_dotenv()
@@ -34,7 +33,6 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE_PATH, 
 # Авторизация
 gc = gspread.authorize(credentials)
 sheet = gc.open_by_key(os.getenv("SPREADSHEET_ID")).sheet1  # Получаем ID из переменных окружения
-
 
 def get_active_tasks():
     data = sheet.get_all_records()
